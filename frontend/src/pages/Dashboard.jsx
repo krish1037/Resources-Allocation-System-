@@ -1,58 +1,60 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { selectAllNeeds, selectOpenNeeds } from '../store/needsSlice';
+import { selectAvailableVolunteers } from '../store/volunteerSlice';
 import useNeeds from '../hooks/useNeeds';
+import useVolunteers from '../hooks/useVolunteers';
 import HeatmapLayer from '../components/HeatmapLayer';
 import NeedCard from '../components/NeedCard';
 import StatCard from '../components/StatCard';
-import { getAnalytics } from '../services/api';
 
 export default function Dashboard() {
-  const { needs, loading: needsLoading } = useNeeds();
-  const [stats, setStats] = useState({ open: 0, assigned: 0, done: 0, total_needs: 0 });
-  const [activeVolunteers, setActiveVolunteers] = useState(0); 
-  
-  const fetchStats = async () => {
-      try {
-          const res = await getAnalytics();
-          setStats(res.data);
-      } catch (e) {
-          console.error(e);
-      }
-  };
+  useNeeds();           // starts Firestore realtime listener, populates Redux
+  useVolunteers();      // same for volunteers
 
-  useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
-  }, []);
+  const allNeeds        = useSelector(selectAllNeeds);
+  const openNeeds       = useSelector(selectOpenNeeds);
+  const availableVols   = useSelector(selectAvailableVolunteers);
 
-  const openNeeds = needs.filter(n => n.status === 'open');
-  const topNeeds = openNeeds.slice(0, 10);
+  const assigned = allNeeds.filter(n => n.status === 'assigned').length;
+  const done     = allNeeds.filter(n => n.status === 'done').length;
+
+  const topNeeds = [...openNeeds]
+    .sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0))
+    .slice(0, 10);
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-slate-800 mb-4">Dashboard</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <StatCard title="Open Needs" value={stats.open} />
-        <StatCard title="Assigned Today" value={stats.assigned} />
-        <StatCard title="Active Volunteers" value={"12"} />
-        <StatCard title="Needs Resolved" value={stats.done} />
+    <div className="flex h-full">
+
+      {/* Main map area */}
+      <div className="flex-1 flex flex-col">
+        <div className="px-6 pt-6 pb-4">
+          <h1 className="text-xl font-medium text-slate-800">Dashboard</h1>
+          <div className="grid grid-cols-4 gap-4 mt-4">
+            <StatCard label="Open needs"       value={openNeeds.length}       color="orange" />
+            <StatCard label="Assigned today"   value={assigned}               color="blue"   />
+            <StatCard label="Volunteers ready" value={availableVols.length}   color="teal"   />
+            <StatCard label="Resolved"         value={done}                   color="green"  />
+          </div>
+        </div>
+
+        {/* Heatmap — takes remaining height */}
+        <div className="flex-1 px-6 pb-6">
+          <div className="h-full rounded-xl overflow-hidden border border-slate-200">
+            <HeatmapLayer needs={openNeeds} />
+          </div>
+        </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-4 shadow-sm rounded-lg min-h-[400px] flex flex-col">
-            <h2 className="text-lg font-semibold text-slate-800 mb-2">Needs Heatmap</h2>
-            <div className="flex-grow rounded overflow-hidden">
-                <HeatmapLayer needs={openNeeds} />
-            </div>
-        </div>
-        
-        <div className="bg-white p-4 shadow-sm rounded-lg overflow-y-auto max-h-[600px]">
-           <h2 className="text-lg font-semibold text-slate-800 mb-4">Top Priority Needs</h2>
-           {needsLoading ? <p>Loading...</p> : topNeeds.map((need, idx) => (
-               <NeedCard key={need.id || idx} need={need} />
-           ))}
-        </div>
+
+      {/* Right panel — top needs list */}
+      <div className="w-80 border-l border-slate-200 bg-white overflow-auto p-4 flex flex-col gap-3">
+        <p className="text-sm font-medium text-slate-600">Top priority needs</p>
+        {topNeeds.length === 0 && (
+          <p className="text-xs text-slate-400 text-center py-8">No open needs. Run the seed script to add demo data.</p>
+        )}
+        {topNeeds.map(need => (
+          <NeedCard key={need.id} need={need} />
+        ))}
       </div>
     </div>
   );

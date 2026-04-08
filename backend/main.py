@@ -1,3 +1,9 @@
+from dotenv import load_dotenv
+load_dotenv()
+
+from app.services.firebase_admin_init import get_firebase_app
+get_firebase_app()   # initialize once at startup
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import ingest, needs, volunteers, match, analytics

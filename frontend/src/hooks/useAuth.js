@@ -1,33 +1,35 @@
 import { useState, useEffect } from 'react';
-import { auth } from '../services/firebase';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut as fbSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth, googleProvider } from '../services/firebase';
 
 export default function useAuth() {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  const signIn = async () => {
-    const provider = new GoogleAuthProvider();
+  async function signIn() {
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error(error);
+      await signInWithPopup(auth, googleProvider);
+    } catch (e) {
+      console.error('[Auth] Sign-in failed:', e.message);
+      throw e;
     }
-  };
+  }
 
-  const signOut = async () => {
-    await fbSignOut(auth);
-  };
+  async function signOut() {
+    try {
+      await firebaseSignOut(auth);
+    } catch (e) {
+      console.error('[Auth] Sign-out failed:', e.message);
+    }
+  }
 
-  const isAuthenticated = !!user;
-
-  return { user, isAuthenticated, loading, signIn, signOut };
+  return { user, loading, signIn, signOut };
 }

@@ -1,10 +1,13 @@
 import os
 from typing import List
 from datetime import datetime, timezone
+from app.services.firebase_admin_init import get_firebase_app
 from google.cloud import firestore
 from app.models.need import NeedRecord
 from app.models.volunteer import Volunteer
 from app.models.assignment import Assignment
+
+get_firebase_app()
 
 project_id = os.getenv("GCP_PROJECT_ID")
 kwargs = {"project": project_id} if project_id else {}

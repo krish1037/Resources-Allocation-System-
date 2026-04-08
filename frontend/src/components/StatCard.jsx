@@ -1,10 +1,18 @@
 import React from 'react';
 
-export default function StatCard({ title, value }) {
-    return (
-        <div className="bg-white p-4 shadow-sm rounded-lg border-l-4 border-teal-600 border border-slate-100">
-            <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wider">{title}</h3>
-            <p className="text-3xl font-bold text-slate-800 mt-1">{value}</p>
-        </div>
-    );
+const COLOR_MAP = {
+  orange: { bg: 'bg-orange-50', text: 'text-orange-600', num: 'text-orange-700' },
+  blue:   { bg: 'bg-blue-50',   text: 'text-blue-500',   num: 'text-blue-700'   },
+  teal:   { bg: 'bg-teal-50',   text: 'text-teal-500',   num: 'text-teal-700'   },
+  green:  { bg: 'bg-green-50',  text: 'text-green-500',  num: 'text-green-700'  },
+};
+
+export default function StatCard({ label, value, color = 'teal' }) {
+  const c = COLOR_MAP[color] ?? COLOR_MAP.teal;
+  return (
+    <div className={`${c.bg} rounded-xl px-4 py-3`}>
+      <p className={`text-xs font-medium ${c.text}`}>{label}</p>
+      <p className={`text-2xl font-medium mt-0.5 ${c.num}`}>{value ?? 0}</p>
+    </div>
+  );
 }
