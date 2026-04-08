@@ -28,12 +28,11 @@ async def create_match(request: MatchRequest):
         assignment.id = assignment_id
         assignments.append(assignment)
         
-        if volunteer.device_token:
-            notifications.send_task_notification(
-                device_token=volunteer.device_token,
-                task_briefing=briefing,
-                need_type=need.need_type,
-                need_id=need.id or request.need_id
-            )
+        notifications.send_task_notification_safe(
+            device_token=volunteer.device_token,
+            task_briefing=briefing,
+            need_type=need.need_type,
+            need_id=need.id or request.need_id
+        )
             
     return MatchResponse(assignments=assignments, need=need)

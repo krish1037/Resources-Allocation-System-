@@ -44,7 +44,7 @@ FILES["backend/.env.example"] = """
 GCP_PROJECT_ID=your-project
 GOOGLE_MAPS_API_KEY=your-key
 DOCUMENT_AI_PROCESSOR_ID=your-processor
-FCM_SERVER_KEY=your-key
+# FCM_SERVER_KEY is no longer needed (uses google-auth ADC instead)
 BIGQUERY_DATASET=resource_allocator
 """
 
