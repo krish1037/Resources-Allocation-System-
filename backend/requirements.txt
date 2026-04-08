@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+google-cloud-documentai
+google-cloud-aiplatform
+googlemaps
+google-cloud-firestore
+google-cloud-bigquery
+firebase-admin
+pydantic
+python-multipart
+python-dotenv
+pytest
+pytest-asyncio
+httpx
