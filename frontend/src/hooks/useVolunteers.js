@@ -11,6 +11,13 @@ export default function useVolunteers(onlyAvailable = false) {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    if (!db) {
+      // Firestore not available — no data to load
+      console.warn('[useVolunteers] Firestore not configured — running with empty volunteers');
+      setLoading(false);
+      return;
+    }
+
     let q;
     if (onlyAvailable) {
       q = query(

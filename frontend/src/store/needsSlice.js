@@ -9,6 +9,7 @@ const needsSlice = createSlice({
 });
 
 export const { setNeeds } = needsSlice.actions;
+export const needsActions = needsSlice.actions;
 export const selectAllNeeds = state => state.needs.items;
 export const selectOpenNeeds = state => state.needs.items.filter(n => n.status === 'open');
 export default needsSlice.reducer;
