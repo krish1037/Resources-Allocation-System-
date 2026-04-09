@@ -17,7 +17,7 @@ Return JSON with exactly these keys:
   need_type: one of [food, medical, shelter, water, education, other]
   location_description: string (address or area name mentioned in the text)
   urgency_score: integer 1-5 (5=life threatening, 1=minor inconvenience)
-  affected_count: integer (estimated number of people affected, use 10 if unknown)
+  affected_count: integer (estimated number of individuals affected, use 10 if unknown. If families are mentioned, assume 4 people per family)
   description: string (one clear sentence summarizing the need)
 Return ONLY the JSON object. No preamble. No explanation. No markdown.
 """

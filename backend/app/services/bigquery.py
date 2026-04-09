@@ -12,10 +12,8 @@ DATASET = os.getenv("BIGQUERY_DATASET", "resource_allocator")
 async def log_need_event(need: NeedRecord):
     table_id = f"{client.project}.{DATASET}.need_events" if client.project else f"{DATASET}.need_events"
     
-    data = need.model_dump(exclude_none=True)
+    data = need.model_dump(exclude={"created_at", "id"}, exclude_none=True)
     data["event_time"] = datetime.now(timezone.utc).isoformat()
-    if need.created_at:
-        data["created_at"] = need.created_at.isoformat()
         
     errors = client.insert_rows_json(table_id, [data])
     if errors:
