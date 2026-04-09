@@ -5,24 +5,21 @@ import os
 _app = None
 
 def get_firebase_app():
-    """
-    Initializes the Firebase Admin SDK exactly once using the service account JSON file.
-    Safe to call multiple times — returns the existing app after first initialization.
-    The service account file path is read from GOOGLE_APPLICATION_CREDENTIALS env var,
-    which should point to your downloaded service account JSON.
-    Falls back to Application Default Credentials if the env var is not set.
-    """
     global _app
     if _app is not None:
         return _app
 
-    sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    if sa_path and os.path.exists(sa_path):
+    sa_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "./service-account.json")
+
+    if os.path.exists(sa_path):
+        print(f"[Firebase] Initializing with service account: {sa_path}")
         cred = credentials.Certificate(sa_path)
     else:
+        print("[Firebase] service-account.json not found, falling back to ADC")
         cred = credentials.ApplicationDefault()
 
     _app = firebase_admin.initialize_app(cred, {
-        "projectId": os.getenv("GCP_PROJECT_ID"),
+        "projectId": os.getenv("GCP_PROJECT_ID", "mythical-way-491518-v6"),
     })
+    print(f"[Firebase] Initialized for project: {os.getenv('GCP_PROJECT_ID')}")
     return _app

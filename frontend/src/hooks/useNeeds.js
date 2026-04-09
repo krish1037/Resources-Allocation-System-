@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { useDispatch } from 'react-redux';
-import { needsActions } from '../store/needsSlice';
+import { setNeeds as setNeedsAction } from '../store/needsSlice';
 
 export default function useNeeds() {
   const [needs, setNeeds] = useState([]);
@@ -23,9 +23,7 @@ export default function useNeeds() {
       }));
       setNeeds(needsData);
       
-      if(needsActions && needsActions.setNeeds) {
-          dispatch(needsActions.setNeeds(needsData));
-      }
+      dispatch(setNeedsAction(needsData));
       setLoading(false);
     }, (err) => {
       setError(err);
