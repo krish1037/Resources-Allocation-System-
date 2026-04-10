@@ -47,8 +47,8 @@ async def expire_stale_assignments():
     cutoff = datetime.utcnow() - timedelta(hours=48)
     
     stale = db.collection("task_assignments") \
-        .where("status", "==", "pending") \
-        .where("created_at", "<", cutoff) \
+        .where(filter=firestore.FieldFilter("status", "==", "pending")) \
+        .where(filter=firestore.FieldFilter("created_at", "<", cutoff)) \
         .stream()
     
     expired_count = 0

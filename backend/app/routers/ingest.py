@@ -33,12 +33,37 @@ async def ingest_text(body: dict = Body(...)):
 
 @router.post("/form")
 async def ingest_form(body: NeedInput):
-    lat, lng = await geocoding.geocode_location(body.location_description)
-    
-    structured = body.model_dump()
-    need = NeedRecord(**structured, lat=lat, lng=lng, source="form")
+    """
+    Accepts a pre-structured form submission.
+    Geocodes location_description only if lat/lng are missing or zero.
+    Does NOT call Gemini — the form data is already structured.
+    """
+    data = body.model_dump()
+
+    # Only geocode if lat/lng are missing or explicitly zero
+    lat = data.get("lat")
+    lng = data.get("lng")
+
+    if not lat or not lng or (lat == 0 and lng == 0):
+        try:
+            lat, lng = await geocoding.geocode_location(data["location_description"])
+        except Exception as e:
+            print(f"[Geocoding] Failed for form ingest: {e}, using defaults")
+            lat, lng = 26.9124, 75.7873  # Jaipur centre fallback
+
+    # Build the NeedRecord — remove lat/lng from data dict first to avoid duplicates
+    data.pop("lat", None)
+    data.pop("lng", None)
+
+    need = NeedRecord(**data, lat=lat, lng=lng, source="form")
     need_id = await firestore.save_need(need)
     need.id = need_id
+
     await bigquery.log_need_event(need)
-    
-    return {"need_id": need_id, "need": need.model_dump(), "message": "Ingested from form"}
+
+    return {
+        "need_id": need_id,
+        "need": need.model_dump(),
+        "message": "Ingested from form"
+    }
+
