@@ -12,5 +12,5 @@ python-dotenv
 pytest
 pytest-asyncio
 httpx
-vertexai
+google-generativeai
 
