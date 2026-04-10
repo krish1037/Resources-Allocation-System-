@@ -11,13 +11,6 @@ export default function useNeeds() {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    if (!db) {
-      // Firestore not available — no data to load
-      console.warn('[useNeeds] Firestore not configured — running with empty needs');
-      setLoading(false);
-      return;
-    }
-
     const q = query(
       collection(db, 'community_needs'),
       orderBy('priority_score', 'desc')
@@ -30,12 +23,11 @@ export default function useNeeds() {
       }));
       setNeeds(needsData);
       
-      if (needsActions && needsActions.setNeeds) {
-        dispatch(needsActions.setNeeds(needsData));
+      if(needsActions && needsActions.setNeeds) {
+          dispatch(needsActions.setNeeds(needsData));
       }
       setLoading(false);
     }, (err) => {
-      console.warn('[useNeeds] Snapshot error:', err.message);
       setError(err);
       setLoading(false);
     });

@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
@@ -12,35 +12,19 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// Only initialize if at least apiKey is provided
-const hasConfig = !!firebaseConfig.apiKey;
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-let app = null;
-let db = null;
-let auth = null;
-let googleProvider = null;
+export const db   = getFirestore(app);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
+
 let messaging = null;
-
-if (hasConfig) {
-  try {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    db = getFirestore(app);
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-
-    try {
-      messaging = getMessaging(app);
-    } catch (e) {
-      console.warn('[Firebase] Messaging not supported:', e.message);
-    }
-  } catch (e) {
-    console.warn('[Firebase] Initialization failed:', e.message);
-  }
-} else {
-  console.warn('[Firebase] No config found (VITE_FIREBASE_API_KEY is missing). Running in demo mode.');
+try {
+  messaging = getMessaging(app);
+} catch (e) {
+  console.warn('[Firebase] Messaging not supported in this browser:', e.message);
 }
-
-export { db, auth, googleProvider, messaging, hasConfig };
+export { messaging };
 
 export async function requestNotificationPermission() {
   if (!messaging) return null;

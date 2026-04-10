@@ -1,7 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import useAuth from './hooks/useAuth';
-import TopNavigation from './components/TopNavigation';
+import Sidebar from './components/Sidebar';
 
 import Login      from './pages/Login';
 import Dashboard  from './pages/Dashboard';
@@ -15,11 +15,9 @@ function ProtectedLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="w-8 h-8 border-2 border-zinc-300 dark:border-zinc-700 border-t-zinc-900 dark:border-t-white rounded-full animate-spin" />
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading...</span>
-        </div>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
+                    height:'100vh', color:'var(--color-text-secondary)', fontSize:14 }}>
+        Loading...
       </div>
     );
   }
@@ -27,9 +25,9 @@ function ProtectedLayout() {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] text-zinc-900 dark:text-zinc-100 font-sans selection:bg-zinc-200 dark:selection:bg-zinc-800 transition-colors flex flex-col">
-      <TopNavigation />
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-8">
+    <div style={{ display:'flex', height:'100vh', overflow:'hidden' }}>
+      <Sidebar />
+      <main style={{ flex:1, overflow:'auto' }}>
         <Outlet />
       </main>
     </div>

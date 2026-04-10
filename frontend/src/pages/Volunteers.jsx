@@ -1,210 +1,171 @@
-import React, { useState } from 'react';
-import { useSelector } from 'react-redux';
-import { Plus, Search, MoreHorizontal, MapPin } from 'lucide-react';
-import { selectAllVolunteers, selectAvailableVolunteers } from '../store/volunteerSlice';
+import React, { useState, useMemo } from 'react';
 import useVolunteers from '../hooks/useVolunteers';
-import { useTranslation } from '../contexts/I18nContext';
-import { registerVolunteer, updateVolunteerAvailability } from '../services/api';
-import Button from '../components/Button';
-import PageHeader from '../components/PageHeader';
+import VolunteerCard from '../components/VolunteerCard';
+import { registerVolunteer } from '../services/api';
+
+const SKILL_OPTIONS = [
+  'medical','food_distribution','teaching',
+  'transport','construction','counseling','general'
+];
 
 export default function Volunteers() {
-  const { t } = useTranslation();
-  useVolunteers();
-
-  const allVolunteers = useSelector(selectAllVolunteers);
-  const availableVols = useSelector(selectAvailableVolunteers);
-
-  const [searchTerm, setSearchTerm] = useState('');
+  const { volunteers, loading, error } = useVolunteers();
+  const [search, setSearch] = useState('');
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', skills: '', lat: '', lng: '',
+  const [form, setForm] = useState({
+    name: '', email: '', phone: '',
+    skills: [], availability: true,
+    lat: 26.9124, lng: 75.7873   // default to Jaipur centre
   });
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState(null);
 
-  const filtered = allVolunteers.filter(v =>
-    v.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.skills?.some(s => s.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filtered = useMemo(() => {
+    return volunteers
+      .filter(v => availableOnly ? v.availability : true)
+      .filter(v =>
+        v.name.toLowerCase().includes(search.toLowerCase()) ||
+        v.email.toLowerCase().includes(search.toLowerCase())
+      );
+  }, [volunteers, search, availableOnly]);
 
-  const handleRegister = async (e) => {
+  const availableCount = volunteers.filter(v => v.availability).length;
+
+  function toggleSkill(skill) {
+    setForm(f => ({
+      ...f,
+      skills: f.skills.includes(skill)
+        ? f.skills.filter(s => s !== skill)
+        : [...f.skills, skill]
+    }));
+  }
+
+  async function handleRegister(e) {
     e.preventDefault();
+    if (!form.name || !form.email || form.skills.length === 0) {
+      setFormError('Name, email, and at least one skill are required.');
+      return;
+    }
     setSubmitting(true);
+    setFormError(null);
     try {
-      await registerVolunteer({
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone || null,
-        skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
-        lat: parseFloat(formData.lat) || 0,
-        lng: parseFloat(formData.lng) || 0,
-        availability: true,
-      });
+      await registerVolunteer(form);
       setShowForm(false);
-      setFormData({ name: '', email: '', phone: '', skills: '', lat: '', lng: '' });
+      setForm({ name:'', email:'', phone:'', skills:[], availability:true, lat:26.9124, lng:75.7873 });
     } catch (err) {
-      alert('Registration failed: ' + (err.response?.data?.detail || err.message));
+      setFormError(err.message);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const toggleAvailability = async (vol) => {
-    try {
-      await updateVolunteerAvailability(vol.id, !vol.availability);
-    } catch (err) {
-      console.error('Toggle failed:', err);
-    }
-  };
+  }
 
   return (
-    <div className="animate-fade-in">
-      <PageHeader
-        title={t('nav.volunteers')}
-        subtitle={`${availableVols.length} of ${allVolunteers.length} available`}
-        action={
-          <div className="flex space-x-2">
-            <Button variant="primary" icon={Plus} onClick={() => setShowForm(!showForm)}>
-              Add Personnel
-            </Button>
-          </div>
-        }
-      />
+    <div className="flex-1 overflow-auto bg-slate-50 p-6">
 
-      {/* Registration Form */}
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-xl font-medium text-slate-800">Volunteers</h1>
+          <div className="flex gap-3 mt-1">
+            <span className="text-xs text-slate-400">{volunteers.length} registered</span>
+            <span className="text-xs text-green-600 font-medium">{availableCount} available</span>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg
+                     hover:bg-teal-700 active:scale-95 transition-all">
+          {showForm ? 'Cancel' : '+ Register volunteer'}
+        </button>
+      </div>
+
+      {/* Inline registration form */}
       {showForm && (
-        <form
-          onSubmit={handleRegister}
-          className="mb-8 p-6 bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm animate-slide-up"
-        >
-          <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-4">Register New Volunteer</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { key: 'name', label: 'Full Name', placeholder: 'Jane Doe', required: true },
-              { key: 'email', label: 'Email', placeholder: 'jane@org.com', type: 'email', required: true },
-              { key: 'phone', label: 'Phone', placeholder: '+91 98765 43210' },
-              { key: 'skills', label: 'Skills (comma-separated)', placeholder: 'first aid, logistics, driving' },
-              { key: 'lat', label: 'Latitude', placeholder: '26.9124', type: 'number' },
-              { key: 'lng', label: 'Longitude', placeholder: '75.7873', type: 'number' },
-            ].map(field => (
-              <div key={field.key}>
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">
-                  {field.label}
-                </label>
-                <input
-                  type={field.type || 'text'}
-                  required={field.required}
-                  placeholder={field.placeholder}
-                  value={formData[field.key]}
-                  onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                  className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition"
-                  step={field.type === 'number' ? 'any' : undefined}
-                />
-              </div>
-            ))}
+        <form onSubmit={handleRegister}
+          className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6 grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <p className="text-sm font-medium text-slate-700 mb-3">Register new volunteer</p>
           </div>
-          <div className="flex justify-end mt-4 space-x-2">
-            <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? 'Registering...' : 'Register'}
-            </Button>
+          <input required placeholder="Full name" value={form.name}
+            onChange={e => setForm(f => ({...f, name: e.target.value}))}
+            className="col-span-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
+                       focus:outline-none focus:ring-2 focus:ring-teal-400" />
+          <input required type="email" placeholder="Email" value={form.email}
+            onChange={e => setForm(f => ({...f, email: e.target.value}))}
+            className="col-span-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
+                       focus:outline-none focus:ring-2 focus:ring-teal-400" />
+          <input placeholder="Phone (optional)" value={form.phone}
+            onChange={e => setForm(f => ({...f, phone: e.target.value}))}
+            className="col-span-2 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
+                       focus:outline-none focus:ring-2 focus:ring-teal-400" />
+          <div className="col-span-2">
+            <p className="text-xs text-slate-500 mb-2">Skills (select all that apply)</p>
+            <div className="flex flex-wrap gap-2">
+              {SKILL_OPTIONS.map(skill => (
+                <button type="button" key={skill}
+                  onClick={() => toggleSkill(skill)}
+                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                    form.skills.includes(skill)
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'
+                  }`}>
+                  {skill.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
           </div>
+          {formError && (
+            <p className="col-span-2 text-xs text-red-600 bg-red-50 rounded-lg px-3 py-2">{formError}</p>
+          )}
+          <button type="submit" disabled={submitting}
+            className="col-span-2 py-2.5 bg-teal-600 text-white text-sm font-medium rounded-lg
+                       hover:bg-teal-700 disabled:opacity-60 transition-all">
+            {submitting ? 'Registering...' : 'Register volunteer'}
+          </button>
         </form>
       )}
 
-      {/* Search */}
-      <div className="mb-6 flex items-center px-3 py-2 bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-        <Search className="w-4 h-4 text-zinc-400 mr-3" />
+      {/* Search + filter bar */}
+      <div className="flex gap-3 mb-5">
         <input
-          type="text"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Search by name, email, or skill..."
-          className="flex-1 bg-transparent text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none"
-        />
+          type="search" placeholder="Search by name or email..."
+          value={search} onChange={e => setSearch(e.target.value)}
+          className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
+                     bg-white focus:outline-none focus:ring-2 focus:ring-teal-400" />
+        <button
+          onClick={() => setAvailableOnly(v => !v)}
+          className={`px-4 py-2 text-sm rounded-lg border transition-colors ${
+            availableOnly
+              ? 'bg-teal-600 text-white border-teal-600'
+              : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400'
+          }`}>
+          Available only
+        </button>
       </div>
 
-      {/* Volunteer List */}
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <div className="p-12 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-            <p className="text-sm text-zinc-400">
-              {allVolunteers.length === 0 ? 'No volunteers registered yet.' : 'No results match your search.'}
-            </p>
+      {/* States */}
+      {loading && (
+        <div className="text-center py-16 text-slate-400 text-sm">Loading volunteers...</div>
+      )}
+      {error && (
+        <div className="text-center py-8 text-red-500 text-sm bg-red-50 rounded-xl">{error}</div>
+      )}
+
+      {/* Grid */}
+      {!loading && !error && (
+        filtered.length === 0 ? (
+          <div className="text-center py-16 text-slate-400 text-sm">
+            {search || availableOnly ? 'No volunteers match your filters.' : 'No volunteers registered yet.'}
           </div>
-        )}
-        {filtered.map((vol) => (
-          <div
-            key={vol.id}
-            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-sm"
-          >
-            {/* Info */}
-            <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white shadow-sm">
-                {vol.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??'}
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{vol.name}</h3>
-                  <span className="text-[10px] text-zinc-400 font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-                    {vol.id?.slice(0, 8)}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-500 mt-0.5">{vol.email}</p>
-              </div>
-            </div>
-
-            {/* Meta */}
-            <div className="flex items-center space-x-6 sm:space-x-8">
-              {/* Skills */}
-              <div className="hidden md:flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Skills</span>
-                <div className="flex gap-1.5 flex-wrap">
-                  {(vol.skills || []).slice(0, 3).map(s => (
-                    <span key={s} className="text-xs text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-800/50 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700/50">
-                      {s}
-                    </span>
-                  ))}
-                  {(vol.skills?.length || 0) > 3 && (
-                    <span className="text-xs text-zinc-400">+{vol.skills.length - 3}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Location */}
-              {(vol.lat || vol.lng) && (
-                <div className="hidden lg:flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Location</span>
-                  <span className="text-xs text-zinc-500 flex items-center">
-                    <MapPin className="w-3 h-3 mr-1" />
-                    {vol.lat?.toFixed(2)}, {vol.lng?.toFixed(2)}
-                  </span>
-                </div>
-              )}
-
-              {/* Availability */}
-              <div className="flex flex-col">
-                <span className="text-[10px] uppercase tracking-wider text-zinc-400 font-semibold mb-1">Status</span>
-                <button
-                  onClick={() => toggleAvailability(vol)}
-                  className="flex items-center group"
-                  title="Click to toggle"
-                >
-                  <div className={`w-2 h-2 rounded-full mr-1.5 transition-colors ${vol.availability ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'}`} />
-                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
-                    {vol.availability ? 'On Call' : 'Offline'}
-                  </span>
-                </button>
-              </div>
-
-              <button className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                <MoreHorizontal className="w-4 h-4" />
-              </button>
-            </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(v => (
+              <VolunteerCard key={v.id} volunteer={v} />
+            ))}
           </div>
-        ))}
-      </div>
+        )
+      )}
     </div>
   );
 }
