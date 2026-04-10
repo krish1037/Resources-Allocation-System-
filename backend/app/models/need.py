@@ -12,6 +12,7 @@ class NeedRecord(BaseModel):
     affected_count: int
     description: str
     status: Literal["open", "assigned", "done"] = "open"
+    assigned_volunteer_id: Optional[str] = None
     priority_score: Optional[float] = None
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
     source: Literal["image", "text", "form"] = "form"

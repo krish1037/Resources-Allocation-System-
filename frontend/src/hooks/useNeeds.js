@@ -1,37 +1,31 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { useQuery } from '@tanstack/react-query';
+import { getNeeds } from '../services/api';
 import { useDispatch } from 'react-redux';
+import { useEffect } from 'react';
 import { setNeeds as setNeedsAction } from '../store/needsSlice';
 
-export default function useNeeds() {
-  const [needs, setNeeds] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function useNeeds(limit = 50) {
   const dispatch = useDispatch();
 
+  const query = useQuery({
+    queryKey: ['needs', limit],
+    queryFn: async () => {
+      const response = await getNeeds(limit);
+      return response.data.needs;
+    },
+    refetchInterval: 10000, // Auto-refresh every 10 seconds
+  });
+
+  // Keep Redux in sync for compatibility with other components
   useEffect(() => {
-    const q = query(
-      collection(db, 'community_needs'),
-      orderBy('priority_score', 'desc')
-    );
+    if (query.data) {
+      dispatch(setNeedsAction(query.data));
+    }
+  }, [query.data, dispatch]);
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const needsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setNeeds(needsData);
-      
-      dispatch(setNeedsAction(needsData));
-      setLoading(false);
-    }, (err) => {
-      setError(err);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [dispatch]);
-
-  return { needs, loading, error };
+  return {
+    needs: query.data || [],
+    loading: query.isLoading,
+    error: query.error
+  };
 }

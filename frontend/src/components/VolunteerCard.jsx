@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { updateVolunteerAvailability } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 const SKILL_COLORS = {
   medical: 'bg-red-100 text-red-700',
@@ -11,8 +14,24 @@ const SKILL_COLORS = {
 };
 
 export default function VolunteerCard({ volunteer, matchData, onConfirmAssignment }) {
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+
+  const handleToggleStatus = async (e) => {
+    e.stopPropagation();
+    setLoading(true);
+    try {
+        await updateVolunteerAvailability(volunteer.id, !volunteer.availability);
+        queryClient.invalidateQueries({ queryKey: ['volunteers'] });
+        toast.success(`Volunteer marked as ${!volunteer.availability ? 'Available' : 'Busy'}`);
+    } catch(e) {
+        toast.error("Failed to update status");
+    } finally {
+        setLoading(false);
+    }
+  };
 
   async function handleConfirm() {
     setConfirming(true);
@@ -34,6 +53,17 @@ export default function VolunteerCard({ volunteer, matchData, onConfirmAssignmen
           <p className="font-medium text-slate-800 text-sm truncate">{volunteer.name}</p>
           <p className="text-xs text-slate-400 truncate">{volunteer.email}</p>
         </div>
+        <button 
+          onClick={handleToggleStatus}
+          disabled={loading}
+          className={`text-[10px] px-2 py-1 rounded border font-bold transition ${
+              volunteer.availability 
+              ? 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100' 
+              : 'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100'
+          }`}
+        >
+          {loading ? '...' : volunteer.availability ? 'SET BUSY' : 'SET AVAILABLE'}
+        </button>
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
           volunteer.availability
             ? 'bg-green-100 text-green-700'

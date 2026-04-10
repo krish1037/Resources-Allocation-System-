@@ -7,6 +7,10 @@ export default function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
       setLoading(false);
@@ -15,6 +19,10 @@ export default function useAuth() {
   }, []);
 
   async function signIn() {
+    if (!auth) {
+      console.error('[Auth] Cannot sign in: Firebase not initialized');
+      return;
+    }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (e) {

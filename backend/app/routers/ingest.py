@@ -51,9 +51,10 @@ async def ingest_form(body: NeedInput):
             print(f"[Geocoding] Failed for form ingest: {e}, using defaults")
             lat, lng = 26.9124, 75.7873  # Jaipur centre fallback
 
-    # Build the NeedRecord — remove lat/lng from data dict first to avoid duplicates
+    # Build the NeedRecord — remove lat/lng/source from data dict first to avoid duplicates
     data.pop("lat", None)
     data.pop("lng", None)
+    data.pop("source", None)
 
     need = NeedRecord(**data, lat=lat, lng=lng, source="form")
     need_id = await firestore.save_need(need)

@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 
 const needsSlice = createSlice({
   name: 'needs',
@@ -9,6 +9,17 @@ const needsSlice = createSlice({
 });
 
 export const { setNeeds } = needsSlice.actions;
+
 export const selectAllNeeds = state => state.needs.items;
-export const selectOpenNeeds = state => state.needs.items.filter(n => n.status === 'open');
+
+export const selectOpenNeeds = createSelector(
+    [selectAllNeeds],
+    (items) => items.filter(n => n.status === 'open')
+);
+
+export const selectActiveNeeds = createSelector(
+    [selectAllNeeds],
+    (items) => items.filter(n => n.status === 'open' || n.status === 'assigned')
+);
+
 export default needsSlice.reducer;

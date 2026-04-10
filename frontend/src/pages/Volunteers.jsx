@@ -1,7 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import useVolunteers from '../hooks/useVolunteers';
 import VolunteerCard from '../components/VolunteerCard';
-import { registerVolunteer } from '../services/api';
+import { createVolunteer } from '../services/api';
 
 const SKILL_OPTIONS = [
   'medical','food_distribution','teaching',
@@ -9,6 +11,7 @@ const SKILL_OPTIONS = [
 ];
 
 export default function Volunteers() {
+  const queryClient = useQueryClient();
   const { volunteers, loading, error } = useVolunteers();
   const [search, setSearch] = useState('');
   const [availableOnly, setAvailableOnly] = useState(false);
@@ -16,8 +19,24 @@ export default function Volunteers() {
   const [form, setForm] = useState({
     name: '', email: '', phone: '',
     skills: [], availability: true,
-    lat: 26.9124, lng: 75.7873   // default to Jaipur centre
+    lat: 26.9124, lng: 75.7873
   });
+
+  useEffect(() => {
+    if (showForm && "geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setForm(f => ({
+          ...f,
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        }));
+        toast.success("Real-time location captured!");
+      }, (error) => {
+        console.warn("Location access denied, using default center.");
+      });
+    }
+  }, [showForm]);
+
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
 
@@ -50,11 +69,13 @@ export default function Volunteers() {
     setSubmitting(true);
     setFormError(null);
     try {
-      await registerVolunteer(form);
+      await createVolunteer(form);
+      queryClient.invalidateQueries({ queryKey: ['volunteers'] });
+      toast.success('Volunteer registered!');
       setShowForm(false);
       setForm({ name:'', email:'', phone:'', skills:[], availability:true, lat:26.9124, lng:75.7873 });
     } catch (err) {
-      setFormError(err.message);
+      // Handled by global interceptor
     } finally {
       setSubmitting(false);
     }
@@ -87,15 +108,15 @@ export default function Volunteers() {
           <div className="col-span-2">
             <p className="text-sm font-medium text-slate-700 mb-3">Register new volunteer</p>
           </div>
-          <input required placeholder="Full name" value={form.name}
+          <input required id="vol-name" name="name" placeholder="Full name" value={form.name}
             onChange={e => setForm(f => ({...f, name: e.target.value}))}
             className="col-span-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
                        focus:outline-none focus:ring-2 focus:ring-teal-400" />
-          <input required type="email" placeholder="Email" value={form.email}
+          <input required id="vol-email" name="email" type="email" placeholder="Email" value={form.email}
             onChange={e => setForm(f => ({...f, email: e.target.value}))}
             className="col-span-1 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
                        focus:outline-none focus:ring-2 focus:ring-teal-400" />
-          <input placeholder="Phone (optional)" value={form.phone}
+          <input id="vol-phone" name="phone" placeholder="Phone (optional)" value={form.phone}
             onChange={e => setForm(f => ({...f, phone: e.target.value}))}
             className="col-span-2 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800
                        focus:outline-none focus:ring-2 focus:ring-teal-400" />
@@ -149,7 +170,9 @@ export default function Volunteers() {
         <div className="text-center py-16 text-slate-400 text-sm">Loading volunteers...</div>
       )}
       {error && (
-        <div className="text-center py-8 text-red-500 text-sm bg-red-50 rounded-xl">{error}</div>
+        <div className="text-center py-8 text-red-500 text-sm bg-red-50 rounded-xl">
+          {error.message || error.toString()}
+        </div>
       )}
 
       {/* Grid */}

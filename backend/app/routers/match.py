@@ -19,6 +19,7 @@ async def create_match(request: MatchRequest):
         assignment = Assignment(
             need_id=need.id or request.need_id,
             volunteer_id=volunteer.id or "",
+            volunteer_name=volunteer.name,
             match_score=score,
             task_briefing=briefing,
             estimated_distance_km=round(distance, 1)

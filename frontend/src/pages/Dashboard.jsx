@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { selectAllNeeds, selectOpenNeeds } from '../store/needsSlice';
+import { selectAllNeeds, selectOpenNeeds, selectActiveNeeds } from '../store/needsSlice';
 import { selectAvailableVolunteers } from '../store/volunteerSlice';
 import useNeeds from '../hooks/useNeeds';
 import useVolunteers from '../hooks/useVolunteers';
@@ -14,12 +14,13 @@ export default function Dashboard() {
 
   const allNeeds        = useSelector(selectAllNeeds);
   const openNeeds       = useSelector(selectOpenNeeds);
+  const activeNeeds     = useSelector(selectActiveNeeds);
   const availableVols   = useSelector(selectAvailableVolunteers);
 
   const assigned = allNeeds.filter(n => n.status === 'assigned').length;
   const done     = allNeeds.filter(n => n.status === 'done').length;
 
-  const topNeeds = [...openNeeds]
+  const topNeeds = [...activeNeeds]
     .sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0))
     .slice(0, 10);
 

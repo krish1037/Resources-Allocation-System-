@@ -1,25 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { getAnalytics, getTrends } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { getAnalyticsOverview, getAnalyticsTrends } from '../services/api';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export default function Analytics() {
-  const [overview, setOverview] = useState(null);
-  const [trends, setTrends] = useState([]);
-  
-  useEffect(() => {
-      const fetchData = async () => {
-          try {
-              const res1 = await getAnalytics();
-              setOverview(res1.data);
-              
-              const res2 = await getTrends();
-              setTrends(res2.data);
-          } catch(e) {
-              console.error("Failed to load analytics", e);
-          }
-      };
-      fetchData();
-  }, []);
+  const { data: overview, isLoading: loadingOverview } = useQuery({
+    queryKey: ['analytics', 'overview'],
+    queryFn: () => getAnalyticsOverview().then(res => res.data),
+    refetchInterval: 60000 // Refresh every minute
+  });
+
+  const { data: trends, isLoading: loadingTrends } = useQuery({
+    queryKey: ['analytics', 'trends'],
+    queryFn: () => getAnalyticsTrends().then(res => res.data),
+    refetchInterval: 60000
+  });
+
+  if (loadingOverview || loadingTrends) {
+    return <div className="p-8 text-center text-slate-500 animate-pulse">Computing real-time analytics...</div>;
+  }
 
   const categoryData = overview ? Object.entries(overview.by_category).map(([name, count]) => ({ name, count })) : [];
   

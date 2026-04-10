@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import UploadZone from '../components/UploadZone';
 import { ingestImage, ingestText, ingestForm } from '../services/api';
 
 export default function Ingest() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('photo');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -12,8 +15,10 @@ export default function Ingest() {
       try {
           const res = await ingestImage(file);
           setResult(res.data.need);
+          queryClient.invalidateQueries({ queryKey: ['needs'] });
+          toast.success('Image ingested successfully!');
       } catch(e) {
-          console.error(e);
+          // Error is handled by global interceptor
       } finally {
           setLoading(false);
       }
@@ -21,12 +26,14 @@ export default function Ingest() {
 
   const handleTextSubmit = async (e) => {
       e.preventDefault();
+      const text = e.target.text.value;
       setLoading(true);
       try {
-          const res = await ingestText(e.target.text.value);
+          const res = await ingestText(text);
           setResult(res.data.need);
+          queryClient.invalidateQueries({ queryKey: ['needs'] });
+          toast.success('Text mission report ingested!');
       } catch(e) {
-          console.error(e);
       } finally {
           setLoading(false);
       }
@@ -42,8 +49,9 @@ export default function Ingest() {
       try {
           const res = await ingestForm(data);
           setResult(res.data.need);
+          queryClient.invalidateQueries({ queryKey: ['needs'] });
+          toast.success('Form data submitted!');
       } catch(e) {
-          console.error(e);
       } finally {
           setLoading(false);
       }
@@ -66,18 +74,26 @@ export default function Ingest() {
                     {activeTab === 'photo' && <UploadZone onUpload={handleUpload} />}
                     {activeTab === 'text' && (
                         <form onSubmit={handleTextSubmit} className="flex flex-col gap-4">
-                            <textarea name="text" rows="6" className="border border-slate-300 rounded p-3 w-full" placeholder="Paste unstructured field report..." required></textarea>
+                            <textarea id="ingest-text" name="text" rows="6" className="border border-slate-300 rounded p-3 w-full" placeholder="Paste unstructured field report..." required></textarea>
                             <button className="bg-teal-600 text-white font-semibold py-2 px-4 rounded hover:bg-teal-700 transition shadow-sm">Extract Need</button>
                         </form>
                     )}
                     {activeTab === 'form' && (
                         <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
-                            <input name="need_type" placeholder="Type (food, medical, etc)" className="border border-slate-300 px-3 py-2 rounded" required />
-                            <input name="location_description" placeholder="Address/Location" className="border border-slate-300 px-3 py-2 rounded" required />
-                            <input name="description" placeholder="Short description" className="border border-slate-300 px-3 py-2 rounded" required />
+                            <select id="ingest-type" name="need_type" className="border border-slate-300 px-3 py-2 rounded bg-white text-sm" required>
+                                <option value="">Select Type</option>
+                                <option value="food">Food</option>
+                                <option value="medical">Medical</option>
+                                <option value="shelter">Shelter</option>
+                                <option value="water">Water</option>
+                                <option value="education">Education</option>
+                                <option value="other">Other</option>
+                            </select>
+                            <input id="ingest-loc" name="location_description" placeholder="Address/Location" className="border border-slate-300 px-3 py-2 rounded text-sm" required />
+                            <input id="ingest-desc" name="description" placeholder="Short description" className="border border-slate-300 px-3 py-2 rounded" required />
                             <div className="flex gap-4">
-                                <input name="urgency_score" type="number" min="1" max="5" placeholder="Urgency (1-5)" className="border border-slate-300 px-3 py-2 rounded w-1/2" required />
-                                <input name="affected_count" type="number" placeholder="People affected" className="border border-slate-300 px-3 py-2 rounded w-1/2" required />
+                                <input id="ingest-urgency" name="urgency_score" type="number" min="1" max="5" placeholder="Urgency (1-5)" className="border border-slate-300 px-3 py-2 rounded w-1/2" required />
+                                <input id="ingest-count" name="affected_count" type="number" placeholder="People affected" className="border border-slate-300 px-3 py-2 rounded w-1/2" required />
                             </div>
                             <button className="bg-teal-600 text-white font-semibold py-2 px-4 rounded hover:bg-teal-700 transition shadow-sm">Submit Need</button>
                         </form>

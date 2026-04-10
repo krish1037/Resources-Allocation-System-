@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import useNeeds from '../hooks/useNeeds';
 import { Loader } from '@googlemaps/js-api-loader';
 import MatchPanel from '../components/MatchPanel';
-import { matchNeed } from '../services/api';
+import { triggerMatch } from '../services/api';
 
 export default function NeedsMap() {
   const { needs, loading } = useNeeds();
@@ -17,20 +18,21 @@ export default function NeedsMap() {
       const initMap = async () => {
           const loader = new Loader({
               apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
-              version: "weekly"
+              version: "weekly",
+              libraries: ["visualization"]
           });
-          const { Map, InfoWindow, Marker } = await loader.importLibrary("maps");
+          const google = await loader.load();
           
           if (!mapInstanceRef.current && mapRef.current) {
-              mapInstanceRef.current = new Map(mapRef.current, {
-                  center: { lat: 37.7749, lng: -122.4194 },
-                  zoom: 12,
+              mapInstanceRef.current = new google.maps.Map(mapRef.current, {
+                  center: { lat: 20.5937, lng: 78.9629 },
+                  zoom: 5,
                   mapId: "DEMO_MAP_ID"
               });
           }
           
           const map = mapInstanceRef.current;
-          const infoWindow = new InfoWindow();
+          const infoWindow = new google.maps.InfoWindow();
           
           markersRef.current.forEach(m => m.setMap(null));
           markersRef.current = [];
@@ -38,7 +40,7 @@ export default function NeedsMap() {
           needs.filter(n => n.status === 'open').forEach(need => {
              if(need.lat && need.lng) {
                  const color = need.urgency_score >= 4 ? 'red' : need.urgency_score >= 3 ? 'yellow' : 'green';
-                 const m = new Marker({
+                 const m = new google.maps.Marker({
                      map,
                      position: { lat: need.lat, lng: need.lng },
                      title: need.need_type,
@@ -69,10 +71,11 @@ export default function NeedsMap() {
       if(!selectedNeed) return;
       setMatching(true);
       try {
-          const res = await matchNeed(selectedNeed.id);
+          const res = await triggerMatch(selectedNeed.id);
           setMatchData(res.data);
+          toast.success('Found best volunteer matches!');
       } catch(e) {
-          console.error(e);
+          // Handled by global interceptor
       } finally {
           setMatching(false);
       }

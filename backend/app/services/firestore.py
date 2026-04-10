@@ -34,6 +34,10 @@ async def get_open_needs(limit: int = 50) -> List[NeedRecord]:
     docs = db.collection("community_needs").where(filter=firestore.FieldFilter("status", "==", "open")).order_by("priority_score", direction=firestore.Query.DESCENDING).limit(limit).stream()
     return [NeedRecord(**doc.to_dict()) for doc in docs]
 
+async def get_all_needs(limit: int = 100) -> List[NeedRecord]:
+    docs = db.collection("community_needs").limit(limit).stream()
+    return [NeedRecord(**doc.to_dict()) for doc in docs]
+
 async def update_need_priority(need_id: str, priority_score: float):
     db.collection("community_needs").document(need_id).update({"priority_score": priority_score})
 
@@ -47,6 +51,10 @@ async def save_volunteer(volunteer: Volunteer) -> str:
 
 async def get_available_volunteers() -> List[Volunteer]:
     docs = db.collection("volunteers").where(filter=firestore.FieldFilter("availability", "==", True)).stream()
+    return [Volunteer(**doc.to_dict()) for doc in docs]
+
+async def get_all_volunteers() -> List[Volunteer]:
+    docs = db.collection("volunteers").stream()
     return [Volunteer(**doc.to_dict()) for doc in docs]
 
 async def save_assignment(assignment: Assignment) -> str:

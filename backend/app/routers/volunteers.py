@@ -11,7 +11,7 @@ async def create_volunteer(volunteer: Volunteer):
 
 @router.get("/")
 async def get_volunteers():
-    volunteers = await firestore.get_available_volunteers()
+    volunteers = await firestore.get_all_volunteers()
     return [v.model_dump() for v in volunteers]
 
 @router.patch("/{volunteer_id}/availability")

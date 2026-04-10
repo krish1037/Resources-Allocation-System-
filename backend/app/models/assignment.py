@@ -7,6 +7,7 @@ class Assignment(BaseModel):
     id: Optional[str] = None
     need_id: str
     volunteer_id: str
+    volunteer_name: Optional[str] = None
     match_score: float
     task_briefing: str
     status: Literal["pending", "accepted", "in_progress", "completed"] = "pending"

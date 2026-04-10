@@ -1,44 +1,30 @@
-import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy, where } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { useQuery } from '@tanstack/react-query';
+import { getVolunteers } from '../services/api';
 import { useDispatch } from 'react-redux';
-import { setVolunteers } from '../store/volunteerSlice';
+import { useEffect } from 'react';
+import { setVolunteers as setVolunteersAction } from '../store/volunteerSlice';
 
-export default function useVolunteers(onlyAvailable = false) {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [volunteers, setLocalVolunteers] = useState([]);
+export default function useVolunteers() {
   const dispatch = useDispatch();
 
+  const query = useQuery({
+    queryKey: ['volunteers'],
+    queryFn: async () => {
+      const response = await getVolunteers();
+      return response.data;
+    },
+    refetchInterval: 30000, // Volunteers refresh every 30 seconds
+  });
+
   useEffect(() => {
-    let q;
-    if (onlyAvailable) {
-      q = query(
-        collection(db, 'volunteers'),
-        where('availability', '==', true),
-        orderBy('name', 'asc')
-      );
-    } else {
-      q = query(collection(db, 'volunteers'), orderBy('name', 'asc'));
+    if (query.data) {
+      dispatch(setVolunteersAction(query.data));
     }
+  }, [query.data, dispatch]);
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setLocalVolunteers(data);
-        dispatch(setVolunteers(data));
-        setLoading(false);
-      },
-      (err) => {
-        console.error('useVolunteers snapshot error:', err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [onlyAvailable, dispatch]);
-
-  return { volunteers, loading, error };
+  return {
+    volunteers: query.data || [],
+    loading: query.isLoading,
+    error: query.error
+  };
 }

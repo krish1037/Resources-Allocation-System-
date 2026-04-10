@@ -19,8 +19,8 @@ export default function HeatmapLayer({ needs }) {
 
       if (!googleMapRef.current) {
         googleMapRef.current = new googleMaps.maps.Map(mapRef.current, {
-          center: { lat: 37.7749, lng: -122.4194 },
-          zoom: 12,
+          center: { lat: 20.5937, lng: 78.9629 },
+          zoom: 5,
           mapTypeId: "roadmap"
         });
       }
@@ -36,7 +36,7 @@ export default function HeatmapLayer({ needs }) {
       heatmapRef.current = new googleMaps.maps.visualization.HeatmapLayer({
         data,
         map: googleMapRef.current,
-        radius: 30
+        radius: 40
       });
     };
     init();

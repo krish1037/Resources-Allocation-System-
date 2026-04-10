@@ -12,10 +12,19 @@ const firebaseConfig = {
   appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let app;
+let firebaseError = null;
 
-export const db   = getFirestore(app);
-export const auth = getAuth(app);
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+} catch (e) {
+  console.error('[Firebase] Initialization error:', e);
+  firebaseError = e.message;
+}
+
+export { app, firebaseError };
+export const db   = app ? getFirestore(app) : null;
+export const auth = app ? getAuth(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
 let messaging = null;

@@ -1,15 +1,24 @@
-import React from 'react';
-import { updateVolunteerAvailability } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
+import { updateVolunteerAvailability, updateNeedStatus } from '../services/api';
 
 export default function MatchPanel({ matchResponse, onClose }) {
+  const queryClient = useQueryClient();
   const { need, assignments } = matchResponse;
 
   const handleConfirm = async (assignmentId, volunteerId) => {
       try {
-          await updateVolunteerAvailability(volunteerId, false);
-          alert("Assignment confirmed! Notification dispatched.");
+          // Update both Volunteer (Availability) and Need (Status + Link)
+          await Promise.all([
+            updateVolunteerAvailability(volunteerId, false),
+            updateNeedStatus(need.id, 'assigned', volunteerId)
+          ]);
+          
+          queryClient.invalidateQueries({ queryKey: ['volunteers'] });
+          queryClient.invalidateQueries({ queryKey: ['needs'] });
+          toast.success("Assignment confirmed! Notification dispatched.");
       } catch(e) {
-          console.error(e);
+          // Handled by global interceptor
       }
   };
 
@@ -29,7 +38,7 @@ export default function MatchPanel({ matchResponse, onClose }) {
           {assignments.map(a => (
               <div key={a.volunteer_id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
                   <div className="flex justify-between items-start mb-2">
-                     <h3 className="font-bold text-slate-800">{a.volunteer_id.slice(0, 8)}...</h3>
+                     <h3 className="font-bold text-slate-800">{a.volunteer_name || "Volunteer"}</h3>
                      <span className="bg-teal-100 text-teal-800 text-xs px-2 py-1 rounded font-bold">{Math.round(a.match_score)}%</span>
                   </div>
                   <p className="text-sm text-slate-600 mb-3">Distance: <span className="font-medium text-slate-800">{a.estimated_distance_km} km</span></p>

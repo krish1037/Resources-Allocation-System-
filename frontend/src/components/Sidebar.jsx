@@ -32,8 +32,8 @@ function Icon({ name, className = "w-4 h-4" }) {
 export default function Sidebar() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const needs = useSelector(state => state.needs.items ?? []);
-  const openCount = needs.filter(n => n.status === 'open').length;
+  const needs = useSelector(state => state.needs.items);
+  const openCount = Array.isArray(needs) ? needs.filter(n => n.status === 'open').length : 0;
 
   async function handleSignOut() {
     await signOut();
