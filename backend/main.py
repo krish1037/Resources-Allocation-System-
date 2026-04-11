@@ -1,20 +1,24 @@
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv()  # does nothing on Cloud Run, safe to keep
 
 from app.services.firebase_admin_init import get_firebase_app
-get_firebase_app()   # initialize once at startup
+get_firebase_app()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import ingest, needs, volunteers, match, analytics
 from app.functions.scheduler import reprioritise_all_needs, expire_stale_assignments
+import os
 
 app = FastAPI(title="Smart Resource Allocator")
 
-# CORS middleware allowing localhost:5173
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[
+        "http://localhost:5173",                          # local dev
+        "https://mythical-way-491518-v6.web.app",        # Firebase Hosting
+        "https://mythical-way-491518-v6.firebaseapp.com" # Firebase Hosting alt
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,7 +32,6 @@ app.include_router(analytics.router)
 
 @app.get("/health")
 def health_check():
-    # TODO: Check connection to database and return health status
     return {"status": "ok"}
 
 @app.post("/internal/reprioritise")
