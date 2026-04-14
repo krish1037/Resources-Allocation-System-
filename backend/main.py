@@ -16,8 +16,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",                          # local dev
-        "https://mythical-way-491518-v6.web.app",        # Firebase Hosting
-        "https://mythical-way-491518-v6.firebaseapp.com" # Firebase Hosting alt
+        "https://mythical-way-4915*************",        # Firebase Hosting
+        "https://mythical-way-49151************" # Firebase Hosting alt
     ],
     allow_credentials=True,
     allow_methods=["*"],
